@@ -10,39 +10,19 @@ namespace NativeJsonParser
     {
         public static List<string> ParseArray(string str)
         {
-            if (TryParseArray(str, out List<string> array))
-            {
-                return array;
-            }
-
-            return null;
-        }
-
-        public static Dictionary<string, string> ParseDictionary(string str)
-        {
-            if (TryParseDictionary(str, out Dictionary<string, string> dict))
-            {
-                return dict;
-            }
-
-            return null;
-        }
-
-        public static bool TryParseArray(string str, out List<string> array)
-        {
-            array = new List<string>();
-
             if (string.IsNullOrWhiteSpace(str))
             {
-                return false;
+                return null;
             }
 
             str = str.Trim();
             int length = str.Length;
             if (length < 3 || str[0] != '[' || str[length - 1] != ']')
             {
-                return false;
+                return null;
             }
+
+            var array = new List<string>();
 
             length -= 2;
             str = str.Substring(1, length);
@@ -81,7 +61,7 @@ namespace NativeJsonParser
                             case ']':
                                 if (top != '[')
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 stack.Pop();
@@ -92,7 +72,7 @@ namespace NativeJsonParser
                             case '}':
                                 if (top != '{')
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 stack.Pop();
@@ -102,13 +82,13 @@ namespace NativeJsonParser
                                 {
                                     if (index == startIndex)
                                     {
-                                        return false;
+                                        return null;
                                     }
 
                                     var newItem = str.Substring(startIndex, index - startIndex).Trim();
                                     if (string.IsNullOrWhiteSpace(newItem))
                                     {
-                                        return false;
+                                        return null;
                                     }
 
                                     array.Add(newItem);
@@ -128,41 +108,40 @@ namespace NativeJsonParser
 
             if (stack.Count != 0)
             {
-                return false;
+                return null;
             }
 
             if (index == startIndex)
             {
-                return false;
+                return null;
             }
 
             var lastNewItem = str.Substring(startIndex, index - startIndex).Trim();
             if (string.IsNullOrWhiteSpace(lastNewItem))
             {
-                return false;
+                return null;
             }
 
             array.Add(lastNewItem);
 
-            return true;
+            return array;
         }
 
-        public static bool TryParseDictionary(string str, out Dictionary<string, string> dict)
+        public static Dictionary<string, string> ParseDictionary(string str)
         {
-            dict = new Dictionary<string, string>();
-
             if (string.IsNullOrWhiteSpace(str))
             {
-                return false;
+                return null;
             }
 
             str = str.Trim();
             int length = str.Length;
             if (length < 3 || str[0] != '{' || str[length - 1] != '}')
             {
-                return false;
+                return null;
             }
 
+            var dict = new Dictionary<string, string>();
             length -= 2;
             str = str.Substring(1, length);
             var stack = new Stack<char>();
@@ -185,7 +164,7 @@ namespace NativeJsonParser
                         {
                             if (isKeyFound && !isInValue)
                             {
-                                return false;
+                                return null;
                             }
 
                             stack.Push(ch);
@@ -197,12 +176,12 @@ namespace NativeJsonParser
                                 var substr = str.Substring(startIndex, index + 1 - startIndex).Trim();
                                 if (!TryParseQuotedString(substr, out key))
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 if (dict.ContainsKey(key))
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 isKeyFound = true;
@@ -221,7 +200,7 @@ namespace NativeJsonParser
                             case '[':
                                 if (!isInValue)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 stack.Push(ch);
@@ -229,12 +208,12 @@ namespace NativeJsonParser
                             case ']':
                                 if (!isInValue)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 if (top != '[')
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 stack.Pop();
@@ -242,7 +221,7 @@ namespace NativeJsonParser
                             case '{':
                                 if (!isInValue)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 stack.Push(ch);
@@ -250,12 +229,12 @@ namespace NativeJsonParser
                             case '}':
                                 if (!isInValue)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 if (top != '{')
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 stack.Pop();
@@ -263,7 +242,7 @@ namespace NativeJsonParser
                             case ':':
                                 if (!isKeyFound)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 if (!isInValue)
@@ -273,27 +252,27 @@ namespace NativeJsonParser
                                 }
                                 else if (stack.Count == 0)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 break;
                             case ',':
                                 if (!isInValue)
                                 {
-                                    return false;
+                                    return null;
                                 }
 
                                 if (stack.Count == 0)
                                 {
                                     if (index == startIndex)
                                     {
-                                        return false;
+                                        return null;
                                     }
 
                                     var value = str.Substring(startIndex, index - startIndex).Trim();
                                     if (string.IsNullOrWhiteSpace(value))
                                     {
-                                        return false;
+                                        return null;
                                     }
 
                                     dict.Add(key, value);
@@ -315,28 +294,28 @@ namespace NativeJsonParser
 
             if (!isInValue)
             {
-                return false;
+                return null;
             }
 
             if (stack.Count != 0)
             {
-                return false;
+                return null;
             }
 
             if (index == startIndex)
             {
-                return false;
+                return null;
             }
 
             var lastValue = str.Substring(startIndex, index - startIndex).Trim();
             if (string.IsNullOrWhiteSpace(lastValue))
             {
-                return false;
+                return null;
             }
 
             dict.Add(key, lastValue);
 
-            return true;
+            return dict;
         }
 
         private static bool TryParseQuotedString(string quoted, out string str)
