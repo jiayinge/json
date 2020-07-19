@@ -57,6 +57,12 @@ namespace LangPredictionParserUnitTests
                 var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
                 Assert.AreEqual("no_prominent", language, false);
             }
+
+            {
+                var response = "[{\"predictions\": {\"en\": 0.368736, \"fil\": 0.191093, \"nl\": 0.171263}, \"text\": \"tags: teens\\tporn\"}]";
+                var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
+                Assert.AreEqual("en", language, false);
+            }
         }
     }
 }

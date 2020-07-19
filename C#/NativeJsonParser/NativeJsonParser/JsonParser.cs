@@ -54,14 +54,7 @@ namespace NativeJsonParser
                             }
 
                             break;
-                        case '\'':
-                            break;
                         default:
-                            if (justAfterEscape)
-                            {
-                                return null;
-                            }
-
                             break;
                     }
                 }
@@ -214,14 +207,7 @@ namespace NativeJsonParser
                             }
 
                             break;
-                        case '\'':
-                            break;
                         default:
-                            if (justAfterEscape)
-                            {
-                                return null;
-                            }
-
                             break;
                     }
                 }
