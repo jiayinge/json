@@ -29,80 +29,102 @@ namespace NativeJsonParser
             var stack = new Stack<char>();
             int index = 0;
             int startIndex = 0;
-            char prevch = '\0';
+            bool isInQuotation = false;
+            bool justAfterEscape = false;
             while (index < length)
             {
                 var ch = str[index];
+                bool isCurEscape = false;
 
-                if (ch == '\"')
+                if (isInQuotation)
                 {
-                    if (prevch != '\\')
+                    switch (ch)
                     {
-                        if (stack.Count == 0 || stack.Peek() != '\"')
-                        {
-                            stack.Push(ch);
-                        }
-                        else
-                        {
-                            stack.Pop();
-                        }
+                        case '\"':
+                            if (!justAfterEscape)
+                            {
+                                isInQuotation = false;
+                            }
+
+                            break;
+                        case '\\':
+                            if (!justAfterEscape)
+                            {
+                                isCurEscape = true;
+                            }
+
+                            break;
+                        case '\'':
+                            break;
+                        default:
+                            if (justAfterEscape)
+                            {
+                                return null;
+                            }
+
+                            break;
                     }
                 }
                 else
                 {
-                    char top = '\0';
-                    if (stack.Count == 0 || (top = stack.Peek()) != '\"')
+                    var top = '\0';
+                    if (stack.Count > 0)
                     {
-                        switch (ch)
-                        {
-                            case '[':
-                                stack.Push(ch);
-                                break;
-                            case ']':
-                                if (top != '[')
+                        top = stack.Peek();
+                    }
+
+                    switch (ch)
+                    {
+                        case '\"':
+                            isInQuotation = true;
+                            break;
+                        case '[':
+                            stack.Push(ch);
+                            break;
+                        case ']':
+                            if (top != '[')
+                            {
+                                return null;
+                            }
+
+                            stack.Pop();
+                            break;
+                        case '{':
+                            stack.Push(ch);
+                            break;
+                        case '}':
+                            if (top != '{')
+                            {
+                                return null;
+                            }
+
+                            stack.Pop();
+                            break;
+                        case ',':
+                            if (stack.Count == 0)
+                            {
+                                if (index == startIndex)
                                 {
                                     return null;
                                 }
 
-                                stack.Pop();
-                                break;
-                            case '{':
-                                stack.Push(ch);
-                                break;
-                            case '}':
-                                if (top != '{')
+                                var newItem = str.Substring(startIndex, index - startIndex).Trim();
+                                if (string.IsNullOrWhiteSpace(newItem))
                                 {
                                     return null;
                                 }
 
-                                stack.Pop();
-                                break;
-                            case ',':
-                                if (stack.Count == 0)
-                                {
-                                    if (index == startIndex)
-                                    {
-                                        return null;
-                                    }
+                                array.Add(newItem);
+                                startIndex = index + 1;
+                            }
 
-                                    var newItem = str.Substring(startIndex, index - startIndex).Trim();
-                                    if (string.IsNullOrWhiteSpace(newItem))
-                                    {
-                                        return null;
-                                    }
-
-                                    array.Add(newItem);
-                                    startIndex = index + 1;
-                                }
-
-                                break;
-                            default:
-                                break;
-                        }
+                            break;
+                        default:
+                            break;
                     }
                 }
 
-                prevch = ch;
+                justAfterEscape = isCurEscape;
                 index++;
             }
 
@@ -147,148 +169,171 @@ namespace NativeJsonParser
             var stack = new Stack<char>();
             int index = 0;
             int startIndex = 0;
-            char prevch = '\0';
             string key = null;
             bool isKeyFound = false;
             bool isInValue = false;
+            bool isInQuotation = false;
+            bool justAfterEscape = false;
 
             while (index < length)
             {
                 var ch = str[index];
+                bool isCurEscape = false;
 
-                if (ch == '\"')
+                if (isInQuotation)
                 {
-                    if (prevch != '\\')
+                    switch (ch)
                     {
-                        if (stack.Count == 0 || stack.Peek() != '\"')
-                        {
+                        case '\"':
+                            if (!justAfterEscape)
+                            {
+                                if (!isKeyFound)
+                                {
+                                    var substr = str.Substring(startIndex, index + 1 - startIndex).Trim();
+                                    if (!TryParseQuotedString(substr, out key))
+                                    {
+                                        return null;
+                                    }
+
+                                    if (dict.ContainsKey(key))
+                                    {
+                                        return null;
+                                    }
+
+                                    isKeyFound = true;
+                                }
+
+                                isInQuotation = false;
+                            }
+
+                            break;
+                        case '\\':
+                            if (!justAfterEscape)
+                            {
+                                isCurEscape = true;
+                            }
+
+                            break;
+                        case '\'':
+                            break;
+                        default:
+                            if (justAfterEscape)
+                            {
+                                return null;
+                            }
+
+                            break;
+                    }
+                }
+                else
+                {
+                    var top = '\0';
+                    if (stack.Count > 0)
+                    {
+                        top = stack.Peek();
+                    }
+
+                    switch (ch)
+                    {
+                        case '\"':
                             if (isKeyFound && !isInValue)
                             {
                                 return null;
                             }
 
+                            isInQuotation = true;
+                            break;
+                        case '[':
+                            if (!isInValue)
+                            {
+                                return null;
+                            }
+
                             stack.Push(ch);
-                        }
-                        else
-                        {
+                            break;
+                        case ']':
+                            if (!isInValue)
+                            {
+                                return null;
+                            }
+
+                            if (top != '[')
+                            {
+                                return null;
+                            }
+
+                            stack.Pop();
+                            break;
+                        case '{':
+                            if (!isInValue)
+                            {
+                                return null;
+                            }
+
+                            stack.Push(ch);
+                            break;
+                        case '}':
+                            if (!isInValue)
+                            {
+                                return null;
+                            }
+
+                            if (top != '{')
+                            {
+                                return null;
+                            }
+
+                            stack.Pop();
+                            break;
+                        case ':':
                             if (!isKeyFound)
                             {
-                                var substr = str.Substring(startIndex, index + 1 - startIndex).Trim();
-                                if (!TryParseQuotedString(substr, out key))
-                                {
-                                    return null;
-                                }
-
-                                if (dict.ContainsKey(key))
-                                {
-                                    return null;
-                                }
-
-                                isKeyFound = true;
+                                return null;
                             }
-                            stack.Pop();
-                        }
-                    }
-                }
-                else
-                {
-                    char top = '\0';
-                    if (stack.Count == 0 || (top = stack.Peek()) != '\"')
-                    {
-                        switch (ch)
-                        {
-                            case '[':
-                                if (!isInValue)
+
+                            if (!isInValue)
+                            {
+                                isInValue = true;
+                                startIndex = index + 1;
+                            }
+                            else if (stack.Count == 0)
+                            {
+                                return null;
+                            }
+
+                            break;
+                        case ',':
+                            if (!isInValue)
+                            {
+                                return null;
+                            }
+
+                            if (stack.Count == 0)
+                            {
+                                if (index == startIndex)
                                 {
                                     return null;
                                 }
 
-                                stack.Push(ch);
-                                break;
-                            case ']':
-                                if (!isInValue)
+                                var value = str.Substring(startIndex, index - startIndex).Trim();
+                                if (string.IsNullOrWhiteSpace(value))
                                 {
                                     return null;
                                 }
 
-                                if (top != '[')
-                                {
-                                    return null;
-                                }
+                                dict.Add(key, value);
+                                startIndex = index + 1;
+                                isKeyFound = false;
+                                isInValue = false;
+                            }
 
-                                stack.Pop();
-                                break;
-                            case '{':
-                                if (!isInValue)
-                                {
-                                    return null;
-                                }
-
-                                stack.Push(ch);
-                                break;
-                            case '}':
-                                if (!isInValue)
-                                {
-                                    return null;
-                                }
-
-                                if (top != '{')
-                                {
-                                    return null;
-                                }
-
-                                stack.Pop();
-                                break;
-                            case ':':
-                                if (!isKeyFound)
-                                {
-                                    return null;
-                                }
-
-                                if (!isInValue)
-                                {
-                                    isInValue = true;
-                                    startIndex = index + 1;
-                                }
-                                else if (stack.Count == 0)
-                                {
-                                    return null;
-                                }
-
-                                break;
-                            case ',':
-                                if (!isInValue)
-                                {
-                                    return null;
-                                }
-
-                                if (stack.Count == 0)
-                                {
-                                    if (index == startIndex)
-                                    {
-                                        return null;
-                                    }
-
-                                    var value = str.Substring(startIndex, index - startIndex).Trim();
-                                    if (string.IsNullOrWhiteSpace(value))
-                                    {
-                                        return null;
-                                    }
-
-                                    dict.Add(key, value);
-                                    startIndex = index + 1;
-                                    isKeyFound = false;
-                                    isInValue = false;
-                                }
-
-                                break;
-                            default:
-                                break;
-                        }
+                            break;
+                        default:
+                            break;
                     }
                 }
 
-                prevch = ch;
+                justAfterEscape = isCurEscape;
                 index++;
             }
 

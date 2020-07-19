@@ -41,6 +41,12 @@ namespace LangPredictionParserUnitTests
             }
 
             {
+                var response = "[{\"predictions\": {\"'en'\": 0.512721, \"fil\": 0.126065, \"ms\": 0.060791}, \"text\": \"'utf-8'\"}]";
+                var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
+                Assert.AreEqual("'en'", language, false);
+            }
+
+            {
                 var response = "[{\"predictions\": {\"zh-Hans\": 0.999768, \"zh-Hant\": 0.000232}, \"text\": \"2017 年版《江西省房屋建筑和市政基础设 施工程施工招标投标示范格式文本\"}]";
                 var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
                 Assert.AreEqual("zh-Hans", language, false);
