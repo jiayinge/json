@@ -13,7 +13,7 @@ namespace LangPredictionParser
         private const string NoPrediction = "no_predict";
         private const string InvalidPrediction = "invalid_predict";
         private const string MultiLingual = "multi_lingual";
-        private const string NoLanguage = "no_language";
+        private const string LanguageIndependent = "language_independent";
         private const string NoProminent = "no_prominent";
         private const double ProminentRatio = 1.5D;
         private const double ProminentThreshold = 0.15D;
@@ -69,12 +69,13 @@ namespace LangPredictionParser
 
             if (languageDict.Count == 0)
             {
-                language = NoLanguage;
+                language = LanguageIndependent;
                 return language;
             }
 
             double max = 0D;
             double secondMax = -1D;
+            double min = 2D;
             foreach (var entry in languageDict)
             {
                 double confidence = 0D;
@@ -98,9 +99,19 @@ namespace LangPredictionParser
                 {
                     secondMax = confidence;
                 }
+
+                if (confidence < min)
+                {
+                    min = confidence;
+                }
             }
 
-            if (max <= ProminentThreshold || max < secondMax * ProminentRatio)
+            if (min >= 1D && languageDict.Count > 1)
+            {
+                language = LanguageIndependent;
+                return language;
+            }
+            else if (max <= ProminentThreshold || max < secondMax * ProminentRatio)
             {
                 language = NoProminent;
                 return language;

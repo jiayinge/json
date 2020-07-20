@@ -63,6 +63,24 @@ namespace LangPredictionParserUnitTests
                 var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
                 Assert.AreEqual("en", language, false);
             }
+
+            {
+                var response = "[{\"predictions\": {\"en\": 1.0, \"fr\": 1.0, \"es\": 1.0, \"id\": 1.0, \"pt\": 1.0, \"de\": 1.0, \"nl\": 1.0, \"ro\": 1.0}, \"text\": \"google\"}]";
+                var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
+                Assert.AreEqual("language_independent", language, false);
+            }
+
+            {
+                var response = "[{\"predictions\": {\"vi\": 1.0}, \"text\": \"nhà máy nhiệt điện nghi sơn 2\"}]";
+                var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
+                Assert.AreEqual("vi", language, false);
+            }
+
+            {
+                var response = "[{\"predictions\": {\"vi\": 0.1}, \"text\": \"nhà máy nhiệt điện nghi sơn 2\"}]";
+                var language = LangPredictionParser.LangPredictionParser.ParserLangPredictionResposne(response);
+                Assert.AreEqual("no_prominent", language, false);
+            }
         }
     }
 }
